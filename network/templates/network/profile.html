@@ -1,0 +1,142 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    <h2>Profile</h2>
+    <br>
+    <h3>{{ posts.0.user }}</h3>
+    <p id="followers"><b>Followers:</b> {{ followers }}</p>
+    <p id="follows"><b>Follows:</b> {{ follows }}</p>
+    {% if user.is_authenticated %}
+        {% if posts.0.user_id != user.id %}
+            {% if current_user_follows %}
+                <button id="followButton">Unfollow</button>
+            {% else %}
+                <button id="followButton">Follow</button>
+            {% endif %}  
+        {% endif %}  
+    {% endif %}
+    <br>
+    <br>
+    <div class="form-row">
+        {% for post in posts %}
+        <div id="post" class="col-md-12 col-lg-12">
+            <a id="post_user" href="{% url 'profile' target_user=post.user_id %}"><b>{{ post.user }}</b></a>
+            <p id="post_text{{ post.id }}">{{ post.postBody }}</p>
+
+            <textarea id="textarea{{ post.id }}" style="display: none" rows="4" cols="50"></textarea>
+
+            <p class="post_date">{{ post.date }}</p>
+            
+            {% if post.liker == "no" %}
+                <button id="likeButton{{ post.id }}" class="post_likes" onclick="toggleLikes('{{ post.id }}')">❤{{ post.likes }}</button> 
+            {% else %}
+                <button id="likeButton{{ post.id }}" style="color:red" class="post_likes" onclick="toggleLikes('{{ post.id }}')">❤{{ post.likes }}</button> 
+            {% endif %}
+            <br>
+            {% if post.user_id == user.id %}
+                <button id="button{{ post.id }}" onclick="enableEditionButton('{{ post.id }}')">Edit</button>
+            {% endif %}
+            <br>
+        </div>
+        {% endfor %}
+    </div>
+    {% if posts.has_other_pages %}
+
+    <nav aria-label="Page navigation">
+        <ul class="pagination navigation">
+            {% if posts.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                href="?page={{ posts.previous_page_number }}">Previous</a>
+            </li>
+            {% else %}
+            <div></div>
+
+            {% endif %}
+
+            {% if posts.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                href="?page={{ posts.next_page_number }}">Next</a>
+            </li>
+            {% else %}
+            <div></div>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var buttonExists = document.getElementById("followButton");
+ 
+            if(typeof(buttonExists) != 'undefined' && buttonExists != null){
+                document.querySelector('#followButton').addEventListener('click', () => toggle_follow());
+            }
+
+            function toggle_follow() {
+                fetch('/follow_toggle/{{ target_user }}')
+                .then(response => response.json())
+                .then(r => {
+                    document.getElementById("followButton").innerHTML = r.available_action;
+                    document.getElementById("followers").innerHTML = "<b>Followers:</b> " + r.followers;
+                    document.getElementById("follows").innerHTML = "<b>Follows:</b> " + r.follows;
+                    });
+            }
+        });
+
+        function enableEditionButton (postId) {
+            var buttonValue = document.getElementById("button" + postId).innerHTML;
+
+            if (buttonValue == "Edit") {
+                var postText = document.getElementById("post_text" + postId).innerHTML;
+                document.getElementById("textarea" + postId).value = postText;
+                document.getElementById("post_text" + postId).style.display = "none";
+                document.getElementById("textarea" + postId).style.display = "block";
+                document.getElementById("button" + postId).innerHTML = "Save";
+            } else if (buttonValue == "Save") {
+                var newPostText = document.getElementById("textarea" + postId).value;
+
+                fetch('/edit_post/' + postId, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        postBody: newPostText
+                    })
+                })
+                .then(response => response.json())
+                .then(r => {
+                    console.log(r.message);
+                    document.getElementById("post_text" + postId).innerHTML = newPostText;
+                    document.getElementById("button" + postId).innerHTML = "Edit";
+                    document.getElementById("textarea" + postId).style.display = "none";
+                    document.getElementById("post_text" + postId).style.display = "block";
+                    });
+            }
+        }
+
+        function toggleLikes (postId) {
+            fetch('/likes_toggle', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        postId: postId,
+                        likerId: "{{ user.id }}"
+                    })
+                })
+                .then(response => response.json())
+                .then(r => {
+                    button = document.getElementById("likeButton" + postId);
+
+                    button.innerHTML = "❤" + r.likes;
+
+                    if (r.message == "likes") {
+                        button.style.color = "red";
+                    } else {
+                        button.style.color = "grey";
+                    }
+                });
+        }
+    </script>
+{% endblock %}
+

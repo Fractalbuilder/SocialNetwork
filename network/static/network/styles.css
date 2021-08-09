@@ -1,0 +1,29 @@
+body {
+  padding: 10px;
+}
+
+#post {
+  border-style: solid;
+  border-width: thin;
+  border-color: grey;
+  padding: 15px 15px;
+}
+
+.post_date {
+  color: grey;
+  margin: 0 0;
+}
+
+.post_likes {
+  color: grey;
+  margin: 0 0;
+}
+
+.post_text {
+  color: black;
+  margin: 0 0;
+}
+
+#post_user {
+  font-size: 25px;
+}
